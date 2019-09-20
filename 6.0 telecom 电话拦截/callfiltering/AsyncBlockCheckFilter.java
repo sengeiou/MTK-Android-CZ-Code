@@ -88,7 +88,7 @@ public class AsyncBlockCheckFilter extends AsyncTask<String, Void, Boolean>{
         }
     }
 
-    //pjz add for intetcept telinfo to db
+    //add for intetcept telinfo to db
     public void addInterceptNumber(){
         android.content.ContentResolver contentResolver = mContext.getContentResolver();
         android.content.ContentValues newValues = new android.content.ContentValues();
