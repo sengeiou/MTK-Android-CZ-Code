@@ -1,0 +1,20 @@
+# Date : WK17.12
+# Purpose: Fix bootup fail
+# allow ueventd proc_net:file r_file_perms;
+
+# Date: W17.22
+# Operation : New Feature
+# Purpose : Add for A/B system
+# allow ueventd device:chr_file { relabelfrom relabelto };
+# allow ueventd m_acc_misc_device:chr_file { relabelfrom relabelto };
+# allow ueventd m_mag_misc_device:chr_file { relabelfrom relabelto };
+
+type suproce, coredomain;
+ 
+#type suproce_exec, exec_type, vendor_file_type, file_type;
+type suproce_exec, exec_type, file_type;
+ 
+# permissive suproce;
+# allow shell suproce_exec:file { read open getattr execute };
+ 
+init_daemon_domain(suproce);

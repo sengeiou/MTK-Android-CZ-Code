@@ -60,3 +60,13 @@
 [Android P 9.0 MTK平台 增加以太网静态IP功能](https://blog.csdn.net/u012932409/article/details/102669395)
 
 [Android8.1 MTK平台 增加以太网静态IP功能](https://blog.csdn.net/u012932409/article/details/90679666)
+
+## 8、开放系统 ROOT 权限，su 和 app
+
+**系列文章**
+
+[MTK 6765/6739/6755/6761/6763 android9.0 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/103662858)
+
+[MTK 6735/6739/6755/6763 android8.1 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/103353723)
+
+[MTK 6737 android6.0 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/103398641)
