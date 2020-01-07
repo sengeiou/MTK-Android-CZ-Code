@@ -1,0 +1,6 @@
+com.android.dialer
+com.android.soundrecorder
+com.android.browser
+com.mediatek.filemanager
+com.android.calendar
+com.android.email

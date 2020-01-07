@@ -44,6 +44,12 @@
 
 [Android8.1 默认给第三方 app 授予所有权限](https://blog.csdn.net/u012932409/article/details/97400030)
 
+[Android9.0/8.1/6.0 默认给系统 app 授予所有权限](https://blog.csdn.net/u012932409/article/details/103726915)
+
+[Android 8.1 允许安装未知来源权限/允许来自此来源的应用](https://blog.csdn.net/u012932409/article/details/103814872)
+
+
+
 
 ## 6、SystemUI 导航栏/状态栏定制
 
