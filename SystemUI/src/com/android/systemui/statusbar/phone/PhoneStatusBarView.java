@@ -149,8 +149,11 @@ public class PhoneStatusBarView extends PanelBar {
                         barConsumedEvent ? 1 : 0);
             }
         }
-
-        return barConsumedEvent || super.onTouchEvent(event);
+        //cczheng modify
+        //return barConsumedEvent || super.onTouchEvent(event);
+        boolean defaultBool = android.os.Build.DISPLAY.contains("BK") ? false : true;
+        boolean isEnable = SharedConfig.getInstance(mContext).readBoolean(SharedConfig.KEY_PANEL_BAR, defaultBool);
+        return isEnable ? barConsumedEvent || super.onTouchEvent(event) : isEnable;
     }
 
     @Override

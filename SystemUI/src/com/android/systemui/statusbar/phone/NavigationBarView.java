@@ -525,6 +525,14 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
         getBackButton().setVisibility(disableBack      ? View.INVISIBLE : View.VISIBLE);
         getHomeButton().setVisibility(disableHome      ? View.INVISIBLE : View.VISIBLE);
         getRecentsButton().setVisibility(disableRecent ? View.INVISIBLE : View.VISIBLE);
+
+        //20191211 cczheng add recent KeyButton  visibility  invisible
+        String buttonStr = SharedConfig.getInstance(mContext).readString(SharedConfig.KEY_NAVIGATION_BUTTON,
+         "b_h_r");
+        getBackButton().setVisibility(buttonStr.contains("b") ? View.VISIBLE : View.INVISIBLE);  
+        getHomeButton().setVisibility(buttonStr.contains("h") ? View.VISIBLE : View.INVISIBLE);  
+        getRecentsButton().setVisibility(buttonStr.contains("r") ? View.VISIBLE : View.INVISIBLE);
+        //20191211 pjz add recent KeyButton  visibility  invisible
     }
 
     private boolean inLockTask() {
@@ -625,11 +633,11 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
 
     private void updateRotatedViews() {
         mRotatedViews[Surface.ROTATION_0] =
-                mRotatedViews[Surface.ROTATION_180] = findViewById(R.id.rot90);
-                // mRotatedViews[Surface.ROTATION_180] = findViewById(R.id.rot0);
+                //mRotatedViews[Surface.ROTATION_180] = findViewById(R.id.rot90);
+                mRotatedViews[Surface.ROTATION_180] = findViewById(R.id.rot0);
         mRotatedViews[Surface.ROTATION_270] =
-                mRotatedViews[Surface.ROTATION_90] = findViewById(R.id.rot0);
-                // mRotatedViews[Surface.ROTATION_90] = findViewById(R.id.rot90);
+                //mRotatedViews[Surface.ROTATION_90] = findViewById(R.id.rot0);
+                mRotatedViews[Surface.ROTATION_90] = findViewById(R.id.rot90);
 
         Log.d("cct","onFinishInflate-->updateCurrentView()");
         updateCurrentView();
@@ -649,9 +657,9 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
         for (int i=0; i<4; i++) {
             mRotatedViews[i].setVisibility(View.GONE);
         }
-        mCurrentView = mRotatedViews[1];
+        mCurrentView = mRotatedViews[rot];
         mCurrentView.setVisibility(View.VISIBLE);
-        mNavigationInflaterView.setAlternativeOrder(rot == Surface.ROTATION_90);//Surface.ROTATION_90
+        mNavigationInflaterView.setAlternativeOrder(rot == Surface.ROTATION_90);
         for (int i = 0; i < mButtonDispatchers.size(); i++) {
             mButtonDispatchers.valueAt(i).setCurrentView(mCurrentView);
         }

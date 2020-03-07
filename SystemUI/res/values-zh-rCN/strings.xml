@@ -19,6 +19,14 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="quick_settings_screenrecord_label" >"屏幕录制"</string>
+    <string name="accessibility_quick_settings_screen_record_on" >"开始录屏"</string>
+    <string name="accessibility_quick_settings_screen_record_off" >"停止录屏"</string>
+    <string name="dialog_record_off_message" >"停止屏幕录制?"</string>
+    <string name="dialog_record_cancel" >"取消"</string>
+    <string name="dialog_record_sure" >"停止"</string>
+    <string name="record_notification_subtext" >"刚刚"</string>
+    <string name="record_notification_contentext" >"屏幕录制已存储到图库"</string>
     <!--20190517 pjz add sim operator -->
     <string name="operator_cmcc" >"中国移动"</string>
     <string name="operator_cucc" >"中国联通"</string>

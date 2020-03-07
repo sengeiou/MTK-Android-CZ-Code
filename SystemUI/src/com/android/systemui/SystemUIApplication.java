@@ -126,6 +126,9 @@ public class SystemUIApplication extends Application implements SysUiServiceProv
                 public void onReceive(Context context, Intent intent) {
                     if (mBootCompleted) return;
 
+                    //cczheng add for ScreenRecordService
+                    Log.d("ScreenRecordAP", "BOOT_COMPLETED received,start RecordService");
+                    startService(new Intent(SystemUIApplication.this, com.android.systemui.screenrecord.RecordService.class));
                     if (DEBUG) Log.v(TAG, "BOOT_COMPLETED received");
                     unregisterReceiver(this);
                     mBootCompleted = true;

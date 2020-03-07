@@ -113,7 +113,7 @@
 
     <!-- The default tiles to display in QuickSettings pjz remove flashlight,rotation,-->
     <string name="quick_settings_tiles_default" translatable="false">
-        wifi,bt,dnd,battery,cell,airplane,cast
+        wifi,bt,dnd,battery,cell,airplane,cast,recordscreen
     </string>
 
     <!-- Tiles native to System UI. Order should match "quick_settings_tiles_default" -->

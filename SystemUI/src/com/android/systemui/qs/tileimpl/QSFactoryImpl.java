@@ -39,6 +39,7 @@ import com.android.systemui.qs.tiles.NightDisplayTile;
 import com.android.systemui.qs.tiles.RotationLockTile;
 import com.android.systemui.qs.tiles.UserTile;
 import com.android.systemui.qs.tiles.WifiTile;
+import com.android.systemui.qs.tiles.ScreenRecordTile;
 import com.android.systemui.qs.tiles.WorkModeTile;
 import com.android.systemui.qs.QSTileHost;
 
@@ -87,6 +88,7 @@ public class QSFactoryImpl implements QSFactory {
         else if (tileSpec.equals("saver")) return new DataSaverTile(mHost);
         else if (tileSpec.equals("night")) return new NightDisplayTile(mHost);
         else if (tileSpec.equals("nfc")) return new NfcTile(mHost);
+        else if (tileSpec.equals("recordscreen")) return new ScreenRecordTile(mHost);
         /// M: Customize the quick settings tiles for operator. @{
         else if (tileSpec.equals("dataconnection") && !SIMHelper.isWifiOnlyDevice())
             return new MobileDataTile(mHost);

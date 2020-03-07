@@ -376,8 +376,11 @@ public class NavigationBarFragment extends Fragment implements Callbacks {
                 ((View) mNavigationBarView.getParent()).getLayoutParams());
     }
 
-    private void notifyNavigationBarScreenOn() {
-        mNavigationBarView.notifyScreenOn();
+    //20191212 cczheng change private to public
+    public void notifyNavigationBarScreenOn() {
+        if (mNavigationBarView != null) {
+            mNavigationBarView.notifyScreenOn();
+        }
     }
 
     private void prepareNavigationBarView() {

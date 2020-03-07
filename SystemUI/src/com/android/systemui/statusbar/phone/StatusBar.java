@@ -1023,6 +1023,13 @@ public class StatusBar extends SystemUI implements DemoMode,
         mStatusBarWindow.setService(this);
         mStatusBarWindow.setOnTouchListener(getStatusBarWindowTouchListener());
 
+        //20191211 cczheng add ,whether to show status bar[S]
+        boolean showStatusBar = SharedConfig.getInstance(mContext).readBoolean(SharedConfig.KEY_PANEL_GONE, true);
+        Log.v(TAG, "makeStatusBarView showStatusBar=" + showStatusBar);
+        if(mStatusBarWindow!=null)
+            mStatusBarWindow.setVisibility(showStatusBar ? View.VISIBLE : View.GONE);
+        //2019121 cczheng add ,whether to show status bar[E]
+
         // TODO: Deal with the ugliness that comes from having some of the statusbar broken out
         // into fragments, but the rest here, it leaves some awkward lifecycle and whatnot.
         mNotificationPanel = (NotificationPanelView) mStatusBarWindow.findViewById(
@@ -1083,8 +1090,12 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         try {
             boolean showNav = mWindowManagerService.hasNavigationBar();
+            //cczheng modify
+            boolean defaultBool = android.os.Build.DISPLAY.contains("BK") ? false : true;
+            boolean showNav_Temp = SharedConfig.getInstance(mContext).readBoolean(SharedConfig.KEY_NAVIGATION_BAR, defaultBool);
+            
             if (DEBUG) Log.v(TAG, "hasNavigationBar=" + showNav);
-            if (showNav) {
+            if (showNav && showNav_Temp) {
                 createNavigationBar();
             }
         } catch (RemoteException ex) {
@@ -1265,6 +1276,11 @@ public class StatusBar extends SystemUI implements DemoMode,
         filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(DevicePolicyManager.ACTION_SHOW_DEVICE_MONITORING_DIALOG);
+        filter.addAction(OP_NAVIGATION);
+        filter.addAction(OP_PANELBAR);
+        filter.addAction(OP_STATUSBAR);
+        filter.addAction(OP_BUTTON);
+        filter.addAction(OP_STATUSBAR_COLOR);
         context.registerReceiverAsUser(mBroadcastReceiver, UserHandle.ALL, filter, null, null);
 
         IntentFilter demoFilter = new IntentFilter();
@@ -3851,6 +3867,13 @@ public class StatusBar extends SystemUI implements DemoMode,
         }, cancelAction, afterKeyguardGone);
     }
 
+    private static final String OP_NAVIGATION = "com.android.action.WHETHER_SHOW_NAVIGATION";
+    private static final String OP_PANELBAR = "com.android.action.OPEN_PANEL_ENABLED";
+    private static final String OP_STATUSBAR = "com.android.action.WHETHER_SHOW_STATUSBAR";
+    private static final String OP_BUTTON = "com.android.action.SHOW_NAVIGATION_BUTTON";
+    private static final String OP_STATUSBAR_COLOR = "cn.android.action.SET_STATUSBAR_COLOR";
+
+    //cczheng add
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -3873,9 +3896,64 @@ public class StatusBar extends SystemUI implements DemoMode,
             else if (Intent.ACTION_SCREEN_OFF.equals(action)) {
                 finishBarAnimations();
                 resetUserExpandedStates();
+            }else if (OP_STATUSBAR_COLOR.equals(action)) {
+                Log.e("StatusBar", "OP_STATUSBAR_COLOR red: ");
+                if(intent.hasExtra("is_recording")){
+                    boolean result = intent.getBooleanExtra("is_recording", false);
+                    if (mStatusBarView != null) 
+                        mStatusBarView.setBackgroundColor(result 
+                            ? android.graphics.Color.RED : android.graphics.Color.TRANSPARENT);
+                }
             }
             else if (DevicePolicyManager.ACTION_SHOW_DEVICE_MONITORING_DIALOG.equals(action)) {
                 mQSPanel.showDeviceMonitoringDialog();
+            }else if (OP_NAVIGATION.equals(action)) {
+                if(intent.hasExtra("show_navigation_bar")){
+                    boolean result = intent.getBooleanExtra("show_navigation_bar", true);
+                    Log.e("StatusBar", "OP_NAVIGATION: " + result);
+                    if (result) {
+                        if (mNavigationBarView != null) return;
+
+                        createNavigationBar();
+                        SharedConfig.getInstance(mContext).writeData(SharedConfig.KEY_NAVIGATION_BAR, true);
+                    }else{
+                        if (mNavigationBarView == null) return;
+
+                        mWindowManager.removeViewImmediate(mNavigationBarView);
+                        mNavigationBarView = null;
+                        SharedConfig.getInstance(mContext).writeData(SharedConfig.KEY_NAVIGATION_BAR, false);
+                    }
+                }else{
+                    Log.w("StatusBar","didn't contain navigation_bar_show key");
+                }
+            }else if (OP_PANELBAR.equals(action)) {
+                if(intent.hasExtra("open_panel_enabled")){
+                    boolean result = intent.getBooleanExtra("open_panel_enabled",true);
+                    SharedConfig.getInstance(mContext).writeData(SharedConfig.KEY_PANEL_BAR, result);
+                    Log.e("StatusBar", "OP_PANELBAR: " + result);
+                }else{
+                    Log.w("StatusBar","didn't contain open_panel_enabled key");
+                }
+            }else if (OP_STATUSBAR.equals(action)) {
+                if(intent.hasExtra("show_status_bar")){
+                    boolean result = intent.getBooleanExtra("show_status_bar",true);
+                    SharedConfig.getInstance(mContext).writeData(SharedConfig.KEY_PANEL_GONE, result);
+                    if(mStatusBarWindow!=null){
+                       mStatusBarWindow.setVisibility(result ? View.VISIBLE : View.GONE);
+                    }
+                    Log.e("StatusBar", "OP_STATUSBAR: " + result);
+                }else{
+                    Log.w("StatusBar","didn't contain show_status_bar key");
+                }
+            }else if (OP_BUTTON.equals(action)) {
+                if(intent.hasExtra("show_navigation_button")){
+                    String buttonStr = intent.getStringExtra("show_navigation_button");
+                    SharedConfig.getInstance(mContext).writeData(SharedConfig.KEY_NAVIGATION_BUTTON, buttonStr);
+                    Log.e("StatusBar", "OP_BUTTON: " + buttonStr);
+                    if (mNavigationBar != null) mNavigationBar.notifyNavigationBarScreenOn();
+                }else{
+                    Log.w("StatusBar","didn't contain show_navigation_button key");
+                }
             }
         }
     };

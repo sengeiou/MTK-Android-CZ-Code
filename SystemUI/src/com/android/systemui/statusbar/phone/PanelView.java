@@ -254,6 +254,8 @@ public abstract class PanelView extends FrameLayout {
         }
     }
 
+    boolean justClick;
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (mInstantExpanding || mTouchDisabled
@@ -300,9 +302,14 @@ public abstract class PanelView extends FrameLayout {
             mIgnoreXTouchSlop = isFullyCollapsed() || shouldGestureIgnoreXTouchSlop(x, y);
         }
 
+        boolean isRecording = SharedConfig.getInstance(mContext).readBoolean(SharedConfig.KEY_SCREEN_RECORDING, false);
+
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                startExpandMotion(x, y, false /* startTracking */, mExpandedHeight);
+                //cczheng add
+                if (!isRecording) {
+                    startExpandMotion(x, y, false /* startTracking */, mExpandedHeight);
+                }
                 mJustPeeked = false;
                 mMinExpandHeight = 0.0f;
                 mPanelClosedOnDown = isFullyCollapsed();
@@ -316,6 +323,7 @@ public abstract class PanelView extends FrameLayout {
                         && mHeadsUpManager.hasPinnedHeadsUp();
                 if (mVelocityTracker == null) {
                     initVelocityTracker();
+                    log("1");
                 }
                 trackMovement(event);
                 if (!mGestureWaitForTouchSlop || (mHeightAnimator != null && !mHintAnimationRunning)
@@ -325,10 +333,14 @@ public abstract class PanelView extends FrameLayout {
                     cancelHeightAnimator();
                     cancelPeek();
                     onTrackingStarted();
+                    log("2");
                 }
-                if (isFullyCollapsed() && !mHeadsUpManager.hasPinnedHeadsUp()) {
-                    startOpening();
+                if (isFullyCollapsed() && !mHeadsUpManager.hasPinnedHeadsUp() && !isRecording) {
+                    startOpening();//cczheng
+                    log("3");
                 }
+                justClick = true;
+                log("ACTION_DOWN");
                 break;
 
             case MotionEvent.ACTION_POINTER_UP:
@@ -391,15 +403,29 @@ public abstract class PanelView extends FrameLayout {
                         !isTrackingBlocked()) {
                     setExpandedHeightInternal(newHeight);
                 }
+                justClick = false;
+                android.util.Log.d("cpanel","ACTION_MOVE");
                 break;
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                if (justClick && isRecording) {
+                    log("showdialog");
+                    mContext.startActivity(new android.content.Intent("com.android.systemui.stoprecrodtipactivity")
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+                    //mContext.sendBroadcast(
+                        //new android.content.Intent("com.android.action.SET_STATUSBAR_COLOR").putExtra("is_recording", false));
+                }
+                log("ACTION_CANCEL =="+justClick);
                 trackMovement(event);
                 endMotionEvent(event, x, y, false /* forceCancel */);
                 break;
         }
         return !mGestureWaitForTouchSlop || mTracking;
+    }
+
+    private void log(String msg){
+        android.util.Log.e("cpanel",msg);
     }
 
     private void startOpening() {;

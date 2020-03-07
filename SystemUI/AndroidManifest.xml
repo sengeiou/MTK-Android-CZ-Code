@@ -27,6 +27,9 @@
     <permission android:name="android.permission.systemui.IDENTITY"
         android:protectionLevel="signature" />
 
+    <!--20200306 cczheng add for screen record -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -253,6 +256,34 @@
         <service android:name=".screenshot.TakeScreenshotService"
             android:process=":screenshot"
             android:exported="false" />
+
+        <!--20200326 cczheng add for started from SystemUIApplication -->
+        <service android:name=".screenrecord.RecordService"/>
+
+        <!--20200326 cczheng add started from PanelView -->
+        <activity
+            android:name=".screenrecord.StopRecrodTipActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AlertDialogHost"
+            android:finishOnCloseSystemDialogs="true"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="com.android.systemui.stoprecrodtipactivity" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!--20200326 cczheng add for jump to gallery view recordvideo -->
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="com.android.systemui.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- Called from PhoneWindowManager -->
         <receiver android:name=".screenshot.ScreenshotServiceErrorReceiver"
