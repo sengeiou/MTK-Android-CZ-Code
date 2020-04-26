@@ -48,7 +48,7 @@
 
 [Android 8.1 允许安装未知来源权限/允许来自此来源的应用](https://blog.csdn.net/u012932409/article/details/103814872)
 
-
+[androidQ Permission 权限破解合集](https://blog.csdn.net/u012932409/article/details/105734723)
 
 
 ## 6、SystemUI 导航栏/状态栏定制
@@ -76,3 +76,5 @@
 [MTK 6735/6739/6755/6763 android8.1 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/103353723)
 
 [MTK 6737 android6.0 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/103398641)
+
+[android10.0(Q) root MTK 6765 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/105689587)

@@ -1,0 +1,221 @@
+From 64d8a851f3db33db9fb96b78c834494fbef22bb2 Mon Sep 17 00:00:00 2001
+From: pjz <1002364145@qq.com>
+Date: Fri, 24 Apr 2020 16:45:56 +0800
+Subject: [PATCH] add adb root for user version
+
+---
+ .../com/android/server/usb/UsbDeviceManager.java     |  4 ++++
+ alps/system/core/adb/Android.bp                      |  2 ++
+ alps/system/core/fs_mgr/Android.bp                   |  6 ++++--
+ alps/system/sepolicy/Android.mk                      | 11 +++++++----
+ alps/system/sepolicy/definitions.mk                  |  3 ++-
+ .../bootable/bootloader/lk/app/mt_boot/sec_unlock.c  |  4 ++--
+ .../bootloader/lk/platform/common/boot/vboot_state.c |  7 ++++---
+ .../dataconnection/MtkQualifiedNetworksService.java  | 20 +++++++++++++++++---
+ 8 files changed, 42 insertions(+), 15 deletions(-)
+ mode change 100644 => 100755 alps/frameworks/base/services/usb/java/com/android/server/usb/UsbDeviceManager.java
+ mode change 100644 => 100755 alps/system/core/fs_mgr/Android.bp
+ mode change 100644 => 100755 alps/system/sepolicy/definitions.mk
+ mode change 100644 => 100755 alps/vendor/mediatek/proprietary/bootable/bootloader/lk/app/mt_boot/sec_unlock.c
+ mode change 100644 => 100755 alps/vendor/mediatek/proprietary/bootable/bootloader/lk/platform/common/boot/vboot_state.c
+ mode change 100644 => 100755 alps/vendor/mediatek/proprietary/frameworks/opt/telephony/src/java/com/mediatek/internal/telephony/dataconnection/MtkQualifiedNetworksService.java
+
+diff --git a/alps/frameworks/base/services/usb/java/com/android/server/usb/UsbDeviceManager.java b/alps/frameworks/base/services/usb/java/com/android/server/usb/UsbDeviceManager.java
+old mode 100644
+new mode 100755
+index 76d90e0..9d26024
+--- a/alps/frameworks/base/services/usb/java/com/android/server/usb/UsbDeviceManager.java
++++ b/alps/frameworks/base/services/usb/java/com/android/server/usb/UsbDeviceManager.java
+@@ -995,6 +995,10 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
+         }
+ 
+         protected void finishBoot() {
++            android.service.oemlock.OemLockManager mOemLockManager 
++            = (android.service.oemlock.OemLockManager) mContext.getSystemService(Context.OEM_LOCK_SERVICE);
++            mOemLockManager.setOemUnlockAllowedByUser(true);
++
+             if (mBootCompleted && mCurrentUsbFunctionsReceived && mSystemReady) {
+                 if (mPendingBootBroadcast) {
+                     updateUsbStateBroadcastIfNeeded(getAppliedFunctions(mCurrentFunctions));
+diff --git a/alps/system/core/adb/Android.bp b/alps/system/core/adb/Android.bp
+index 0ecf188..1a08ad0 100755
+--- a/alps/system/core/adb/Android.bp
++++ b/alps/system/core/adb/Android.bp
+@@ -412,6 +412,8 @@ cc_library {
+         "liblog",
+     ],
+ 
++    required: [ "remount",],
++
+     product_variables: {
+         debuggable: {
+             required: [
+diff --git a/alps/system/core/fs_mgr/Android.bp b/alps/system/core/fs_mgr/Android.bp
+old mode 100644
+new mode 100755
+index ae85027..bf64cc3
+--- a/alps/system/core/fs_mgr/Android.bp
++++ b/alps/system/core/fs_mgr/Android.bp
+@@ -76,7 +76,8 @@ cc_library {
+         "libfstab",
+     ],
+     cppflags: [
+-        "-DALLOW_ADBD_DISABLE_VERITY=0",
++        "-UALLOW_ADBD_DISABLE_VERITY",
++        "-DALLOW_ADBD_DISABLE_VERITY=1",
+     ],
+     product_variables: {
+         debuggable: {
+@@ -133,7 +134,8 @@ cc_binary {
+         "fs_mgr_remount.cpp",
+     ],
+     cppflags: [
+-        "-DALLOW_ADBD_DISABLE_VERITY=0",
++        "-UALLOW_ADBD_DISABLE_VERITY",
++        "-DALLOW_ADBD_DISABLE_VERITY=1",
+     ],
+     product_variables: {
+         debuggable: {
+diff --git a/alps/system/sepolicy/Android.mk b/alps/system/sepolicy/Android.mk
+index ea5f943..09dac83 100755
+--- a/alps/system/sepolicy/Android.mk
++++ b/alps/system/sepolicy/Android.mk
+@@ -308,8 +308,8 @@ LOCAL_REQUIRED_MODULES += \
+     product_mapping_file \
+ 
+ endif
+-
+-ifneq ($(TARGET_BUILD_VARIANT), user)
++# pjz change user to eng
++ifneq ($(TARGET_BUILD_VARIANT), eng)
+ LOCAL_REQUIRED_MODULES += \
+     selinux_denial_metadata \
+ 
+@@ -1104,7 +1104,8 @@ endif
+ ifneq ($(filter address,$(SANITIZE_TARGET)),)
+   local_fc_files += $(wildcard $(addsuffix /file_contexts_asan, $(PLAT_PRIVATE_POLICY)))
+ endif
+-ifneq (,$(filter userdebug eng,$(TARGET_BUILD_VARIANT)))
++# pjz add user
++ifneq (,$(filter user userdebug eng,$(TARGET_BUILD_VARIANT)))
+   local_fc_files += $(wildcard $(addsuffix /file_contexts_overlayfs, $(PLAT_PRIVATE_POLICY)))
+ endif
+ ifeq ($(TARGET_FLATTEN_APEX),true)
+@@ -1166,7 +1167,9 @@ file_contexts.device.tmp :=
+ file_contexts.local.tmp :=
+ 
+ ##################################
+-ifneq ($(TARGET_BUILD_VARIANT), user)
++# pjz change user to eng
++# ifneq ($(TARGET_BUILD_VARIANT), user)
++ifneq ($(TARGET_BUILD_VARIANT), eng)
+ include $(CLEAR_VARS)
+ 
+ LOCAL_MODULE := selinux_denial_metadata
+diff --git a/alps/system/sepolicy/definitions.mk b/alps/system/sepolicy/definitions.mk
+old mode 100644
+new mode 100755
+index 16c8bd6..6833c18
+--- a/alps/system/sepolicy/definitions.mk
++++ b/alps/system/sepolicy/definitions.mk
+@@ -1,10 +1,11 @@
+ # Command to turn collection of policy files into a policy.conf file to be
+ # processed by checkpolicy
++#-D target_build_variant=$(PRIVATE_TARGET_BUILD_VARIANT) 
+ define transform-policy-to-conf
+ @mkdir -p $(dir $@)
+ $(hide) m4 --fatal-warnings $(PRIVATE_ADDITIONAL_M4DEFS) \
+ 	-D mls_num_sens=$(PRIVATE_MLS_SENS) -D mls_num_cats=$(PRIVATE_MLS_CATS) \
+-	-D target_build_variant=$(PRIVATE_TARGET_BUILD_VARIANT) \
++	-D target_build_variant=eng \
+ 	-D target_with_dexpreopt=$(WITH_DEXPREOPT) \
+ 	-D target_arch=$(PRIVATE_TGT_ARCH) \
+ 	-D target_with_asan=$(PRIVATE_TGT_WITH_ASAN) \
+diff --git a/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/app/mt_boot/sec_unlock.c b/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/app/mt_boot/sec_unlock.c
+old mode 100644
+new mode 100755
+index 8d9f160..319672e
+--- a/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/app/mt_boot/sec_unlock.c
++++ b/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/app/mt_boot/sec_unlock.c
+@@ -343,7 +343,7 @@ void fastboot_oem_unlock(const char *arg, void *data, unsigned sz)
+ 	unlock_warranty();
+ 
+ 	while (1) {
+-		if (mtk_detect_key(MT65XX_MENU_SELECT_KEY)) { //VOL_UP
++		if (mtk_detect_key(MT65XX_MENU_OK_KEY /*MT65XX_MENU_SELECT_KEY*/)) { //VOL_UP
+ 			fastboot_info("Start unlock flow\n");
+ 			//Invoke security check after confirming "yes" by user
+ 			ret = fastboot_get_unlock_perm(&unlock_allowed);
+@@ -381,7 +381,7 @@ void fastboot_oem_unlock(const char *arg, void *data, unsigned sz)
+ 				fastboot_okay("");
+ 			}
+ 			break;
+-		} else if (mtk_detect_key(MT65XX_MENU_OK_KEY)) { //VOL_DOWN
++		} else if (mtk_detect_key(MT65XX_MENU_SELECT_KEY /*MT65XX_MENU_OK_KEY*/)) { //VOL_DOWN
+ 			video_printf("return to fastboot in 3s\n");
+ 			mdelay(3000);
+ 			fastboot_boot_menu();
+diff --git a/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/platform/common/boot/vboot_state.c b/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/platform/common/boot/vboot_state.c
+old mode 100644
+new mode 100755
+index 4eed699..bd63147
+--- a/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/platform/common/boot/vboot_state.c
++++ b/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/platform/common/boot/vboot_state.c
+@@ -131,9 +131,10 @@ int orange_state_warning(void)
+ 
+ 	video_clean_screen();
+ 	video_set_cursor(video_get_rows() / 2, 0);
+-	video_printf("Orange State\n\n");
+-	video_printf("Your device has been unlocked and can't be trusted\n");
+-	video_printf("Your device will boot in 5 seconds\n");
++	//pjz  annotaion don't show warning txt
++	// video_printf("Orange State\n\n");
++	// video_printf("Your device has been unlocked and can't be trusted\n");
++	// video_printf("Your device will boot in 5 seconds\n");
+ 	mtk_wdt_restart();
+ 	mdelay(5000);
+ 	mtk_wdt_restart();
+diff --git a/alps/vendor/mediatek/proprietary/frameworks/opt/telephony/src/java/com/mediatek/internal/telephony/dataconnection/MtkQualifiedNetworksService.java b/alps/vendor/mediatek/proprietary/frameworks/opt/telephony/src/java/com/mediatek/internal/telephony/dataconnection/MtkQualifiedNetworksService.java
+old mode 100644
+new mode 100755
+index f346c3b..6acfe2d
+--- a/alps/vendor/mediatek/proprietary/frameworks/opt/telephony/src/java/com/mediatek/internal/telephony/dataconnection/MtkQualifiedNetworksService.java
++++ b/alps/vendor/mediatek/proprietary/frameworks/opt/telephony/src/java/com/mediatek/internal/telephony/dataconnection/MtkQualifiedNetworksService.java
+@@ -132,8 +132,16 @@ public class MtkQualifiedNetworksService extends QualifiedNetworksService {
+             };
+ 
+             if (DBG) log("Register for qyalified networks changed.");
+-            ((MtkRIL)mPhone.mCi).registerForQualifiedNetworkTypesChanged(
++            /*((MtkRIL)mPhone.mCi).registerForQualifiedNetworkTypesChanged(
++                    mHandler, UPDATE_QUALIFIED_NETWORKS, null);*/
++            //pjz  java.lang.ClassCastException: com.android.internal.telephony.RIL 
++            //cannot be cast to com.mediatek.internal.telephony.MtkRIL        
++            try{
++                ((MtkRIL)mPhone.mCi).registerForQualifiedNetworkTypesChanged(
+                     mHandler, UPDATE_QUALIFIED_NETWORKS, null);
++            }catch (Exception e){
++                e.printStackTrace();
++            }
+         }
+ 
+         /**
+@@ -142,8 +150,14 @@ public class MtkQualifiedNetworksService extends QualifiedNetworksService {
+          */
+         @Override
+         public void close() {
+-            ((MtkRIL)mPhone.mCi).unregisterForQualifiedNetworkTypesChanged(mHandler);
+-            mHandlerThread.quit();
++            /*((MtkRIL)mPhone.mCi).unregisterForQualifiedNetworkTypesChanged(mHandler);
++            mHandlerThread.quit();*/
++            try{
++                ((MtkRIL)mPhone.mCi).unregisterForQualifiedNetworkTypesChanged(mHandler);
++                mHandlerThread.quit();
++            }catch (Exception e){
++                e.printStackTrace();
++            }
+         }
+ 
+         public int converNetworkType(int mdReportType){
+-- 
+2.7.4
+

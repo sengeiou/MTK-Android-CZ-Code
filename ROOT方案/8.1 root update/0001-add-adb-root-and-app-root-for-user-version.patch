@@ -1,0 +1,347 @@
+From 60dfa6f03e5a82e0ea76371971feeee053c83aa6 Mon Sep 17 00:00:00 2001
+From: pjz <1002364145@qq.com>
+Date: Sun, 26 Apr 2020 15:42:57 +0800
+Subject: [PATCH] add adb root and app root for user version
+
+---
+ alps/build/make/core/main.mk                         |   8 +++++---
+ alps/build/make/target/product/verity.mk             |   4 ++--
+ alps/device/mediatek/mt6735/init.mt6735.rc           |   1 +
+ .../mediatek/sepolicy/basic/non_plat/file_contexts   |   3 +++
+ .../mediatek/sepolicy/basic/non_plat/suproce.te      |  19 +++++++++++++++++++
+ .../mediateksample/k37tv1_64_bsp/ProjectConfig.mk    |   2 +-
+ alps/device/mediateksample/k37tv1_64_bsp/device.mk   |   5 +++++
+ .../mediateksample/k37tv1_64_bsp/init.project.rc     |   7 +++++++
+ .../arch/arm64/configs/k37tv1_64_bsp_defconfig       |   3 ++-
+ alps/kernel-3.18/security/commoncap.c                |   4 ++--
+ alps/system/core/adb/Android.mk                      |   4 ++--
+ alps/system/core/adb/daemon/main.cpp                 |   1 +
+ alps/system/core/fs_mgr/Android.bp                   |   1 +
+ alps/system/core/libcutils/fs_config.cpp             |   6 +++++-
+ alps/system/extras/su/su                             | Bin 0 -> 108472 bytes
+ alps/system/extras/su/suproce.sh                     |   8 ++++++++
+ alps/system/sepolicy/Android.mk                      |   4 ++--
+ alps/system/sepolicy/definitions.mk                  |   2 +-
+ .../bootable/bootloader/lk/project/k37tv1_64_bsp.mk  |   2 +-
+ .../proprietary/hardware/fstab/mt6735/fstab.in       |   4 ++--
+ 20 files changed, 70 insertions(+), 18 deletions(-)
+ create mode 100755 alps/device/mediatek/sepolicy/basic/non_plat/suproce.te
+ create mode 100755 alps/system/extras/su/su
+ create mode 100755 alps/system/extras/su/suproce.sh
+
+diff --git a/alps/build/make/core/main.mk b/alps/build/make/core/main.mk
+index e68f622..0ab3cc9 100644
+--- a/alps/build/make/core/main.mk
++++ b/alps/build/make/core/main.mk
+@@ -239,11 +239,13 @@ enable_target_debugging := true
+ tags_to_install :=
+ ifneq (,$(user_variant))
+   # Target is secure in user builds.
+-  ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=1
++  # ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=1
++  ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=0
+   ADDITIONAL_DEFAULT_PROPERTIES += security.perf_harden=1
+ 
+   ifeq ($(user_variant),user)
+-    ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=1
++    # ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=1
++    ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=0
+   endif
+ 
+   ifeq ($(user_variant),userdebug)
+@@ -251,7 +253,7 @@ ifneq (,$(user_variant))
+     tags_to_install += debug
+   else
+     # Disable debugging in plain user builds.
+-    enable_target_debugging :=
++    # enable_target_debugging :=
+   endif
+ 
+   # Disallow mock locations by default for user builds
+diff --git a/alps/build/make/target/product/verity.mk b/alps/build/make/target/product/verity.mk
+index 0badb9f..443d066 100644
+--- a/alps/build/make/target/product/verity.mk
++++ b/alps/build/make/target/product/verity.mk
+@@ -20,8 +20,8 @@
+ user_variant := $(filter user userdebug,$(TARGET_BUILD_VARIANT))
+ ifneq (,$(user_variant))
+     PRODUCT_SUPPORTS_BOOT_SIGNER := true
+-    PRODUCT_SUPPORTS_VERITY := true
+-    PRODUCT_SUPPORTS_VERITY_FEC := true
++    PRODUCT_SUPPORTS_VERITY := false
++    PRODUCT_SUPPORTS_VERITY_FEC := false
+ 
+     # The dev key is used to sign boot and recovery images, and the verity
+     # metadata table. Actual product deliverables will be re-signed by hand.
+diff --git a/alps/device/mediatek/mt6735/init.mt6735.rc b/alps/device/mediatek/mt6735/init.mt6735.rc
+index 80ed2b7..70ec033 100644
+--- a/alps/device/mediatek/mt6735/init.mt6735.rc
++++ b/alps/device/mediatek/mt6735/init.mt6735.rc
+@@ -669,6 +669,7 @@ service bugreport /system/bin/dumpstate -d -p -B -z \
+ 
+ # end boot time fs tune
+ on property:sys.boot_completed=1
++    start suproce
+     write /sys/block/mmcblk0/queue/iostats 1
+     write /sys/block/mmcblk0/queue/read_ahead_kb 128
+     write /sys/block/mmcblk0/queue/nr_requests 128
+diff --git a/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts b/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts
+index 733ffae..b59b85f 100644
+--- a/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts
++++ b/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts
+@@ -565,3 +565,6 @@
+ 
+ #hidl process merging
+ /(system\/vendor|vendor)/bin/hw/merged_hal_service          u:object_r:merged_hal_service_exec:s0
++
++#suproce
++/(system\/vendor|vendor)/bin/suproce.sh          u:object_r:suproce_exec:s0
+diff --git a/alps/device/mediatek/sepolicy/basic/non_plat/suproce.te b/alps/device/mediatek/sepolicy/basic/non_plat/suproce.te
+new file mode 100755
+index 0000000..158f722
+--- /dev/null
++++ b/alps/device/mediatek/sepolicy/basic/non_plat/suproce.te
+@@ -0,0 +1,19 @@
++# Date : WK17.12
++# Purpose: Fix bootup fail
++# allow ueventd proc_net:file r_file_perms;
++
++# Date: W17.22
++# Operation : New Feature
++# Purpose : Add for A/B system
++# allow ueventd device:chr_file { relabelfrom relabelto };
++# allow ueventd m_acc_misc_device:chr_file { relabelfrom relabelto };
++# allow ueventd m_mag_misc_device:chr_file { relabelfrom relabelto };
++
++type suproce, coredomain;
++ 
++type suproce_exec, exec_type, vendor_file_type, file_type;
++ 
++# permissive suproce;
++# allow shell suproce_exec:file { read open getattr execute };
++ 
++init_daemon_domain(suproce);
+\ No newline at end of file
+diff --git a/alps/device/mediateksample/k37tv1_64_bsp/ProjectConfig.mk b/alps/device/mediateksample/k37tv1_64_bsp/ProjectConfig.mk
+index 585c43e..5d7832a 100755
+--- a/alps/device/mediateksample/k37tv1_64_bsp/ProjectConfig.mk
++++ b/alps/device/mediateksample/k37tv1_64_bsp/ProjectConfig.mk
+@@ -272,7 +272,7 @@ MTK_DITHERING_SUPPORT = yes
+ MTK_DMNR_TUNING_AT_MD = no
+ MTK_DM_APP = no
+ MTK_DM_ENTRY_DISPLAY = no
+-MTK_DM_VERITY_OFF = no
++MTK_DM_VERITY_OFF = yes
+ MTK_DOCOMO_SUPPORT = no
+ MTK_DP_FRAMEWORK = yes
+ MTK_DRE30_SUPPORT = no
+diff --git a/alps/device/mediateksample/k37tv1_64_bsp/device.mk b/alps/device/mediateksample/k37tv1_64_bsp/device.mk
+index fe6597d..4aaf5ed 100755
+--- a/alps/device/mediateksample/k37tv1_64_bsp/device.mk
++++ b/alps/device/mediateksample/k37tv1_64_bsp/device.mk
+@@ -19,6 +19,11 @@ PRODUCT_COPY_FILES += $(LOCAL_PATH)/sbk-kpd.kl:system/usr/keylayout/sbk-kpd.kl:m
+                       $(LOCAL_PATH)/sbk-kpd.kcm:system/usr/keychars/sbk-kpd.kcm:mtk
+ endif
+ 
++PRODUCT_COPY_FILES += \
++       system/extras/su/su:system/bin/su \
++       system/extras/su/suproce.sh:system/bin/suproce.sh
++
++
+ # Add FlashTool needed files
+ #PRODUCT_COPY_FILES += $(LOCAL_PATH)/EBR1:EBR1
+ #ifneq ($(wildcard $(LOCAL_PATH)/EBR2),)
+diff --git a/alps/device/mediateksample/k37tv1_64_bsp/init.project.rc b/alps/device/mediateksample/k37tv1_64_bsp/init.project.rc
+index 5080711..0a5f2a7 100755
+--- a/alps/device/mediateksample/k37tv1_64_bsp/init.project.rc
++++ b/alps/device/mediateksample/k37tv1_64_bsp/init.project.rc
+@@ -89,3 +89,10 @@ service iprenew_eth0 /system/bin/dhcpcd -n
+ 	class main
+ 	disabled
+ 	oneshot
++
++service suproce /system/bin/sh /system/bin/suproce.sh
++    class main
++    user root
++    group root
++    oneshot
++    seclabel u:object_r:suproce_exec:s0
+\ No newline at end of file
+diff --git a/alps/kernel-3.18/arch/arm64/configs/k37tv1_64_bsp_defconfig b/alps/kernel-3.18/arch/arm64/configs/k37tv1_64_bsp_defconfig
+index 1768a96..25d336b 100755
+--- a/alps/kernel-3.18/arch/arm64/configs/k37tv1_64_bsp_defconfig
++++ b/alps/kernel-3.18/arch/arm64/configs/k37tv1_64_bsp_defconfig
+@@ -312,7 +312,8 @@ CONFIG_MD=y
+ CONFIG_BLK_DEV_DM=y
+ CONFIG_DM_CRYPT=y
+ CONFIG_DM_UEVENT=y
+-CONFIG_DM_VERITY=y
++CONFIG_DM_VERITY=n
++CONFIG_MTK_DM_VERITY_OFF=y
+ CONFIG_NETDEVICES=y
+ CONFIG_IFB=y
+ CONFIG_TUN=y
+diff --git a/alps/kernel-3.18/security/commoncap.c b/alps/kernel-3.18/security/commoncap.c
+index 740966a..7fc6186 100644
+--- a/alps/kernel-3.18/security/commoncap.c
++++ b/alps/kernel-3.18/security/commoncap.c
+@@ -890,10 +890,10 @@ static int cap_prctl_drop(unsigned long cap)
+ {
+ 	struct cred *new;
+ 
+-	if (!ns_capable(current_user_ns(), CAP_SETPCAP))
++	/*if (!ns_capable(current_user_ns(), CAP_SETPCAP))
+ 		return -EPERM;
+ 	if (!cap_valid(cap))
+-		return -EINVAL;
++		return -EINVAL;*/
+ 
+ 	new = prepare_creds();
+ 	if (!new)
+diff --git a/alps/system/core/adb/Android.mk b/alps/system/core/adb/Android.mk
+index a356fee..8f62712 100644
+--- a/alps/system/core/adb/Android.mk
++++ b/alps/system/core/adb/Android.mk
+@@ -351,9 +351,9 @@ LOCAL_CFLAGS := \
+     -D_GNU_SOURCE \
+     -Wno-deprecated-declarations \
+ 
+-LOCAL_CFLAGS += -DALLOW_ADBD_NO_AUTH=$(if $(filter userdebug eng,$(TARGET_BUILD_VARIANT)),1,0)
++LOCAL_CFLAGS += -DALLOW_ADBD_NO_AUTH=$(if $(filter user userdebug eng,$(TARGET_BUILD_VARIANT)),1,0)
+ 
+-ifneq (,$(filter userdebug eng,$(TARGET_BUILD_VARIANT)))
++ifneq (,$(filter user userdebug eng,$(TARGET_BUILD_VARIANT)))
+ LOCAL_CFLAGS += -DALLOW_ADBD_DISABLE_VERITY=1
+ LOCAL_CFLAGS += -DALLOW_ADBD_ROOT=1
+ endif
+diff --git a/alps/system/core/adb/daemon/main.cpp b/alps/system/core/adb/daemon/main.cpp
+index 3c27582..d5b16ce 100644
+--- a/alps/system/core/adb/daemon/main.cpp
++++ b/alps/system/core/adb/daemon/main.cpp
+@@ -59,6 +59,7 @@ static void drop_capabilities_bounding_set_if_needed(struct minijail *j) {
+ }
+ 
+ static bool should_drop_privileges() {
++    return false;
+ #if defined(ALLOW_ADBD_ROOT)
+     // The properties that affect `adb root` and `adb unroot` are ro.secure and
+     // ro.debuggable. In this context the names don't make the expected behavior
+diff --git a/alps/system/core/fs_mgr/Android.bp b/alps/system/core/fs_mgr/Android.bp
+index f84f18f..42410bd 100644
+--- a/alps/system/core/fs_mgr/Android.bp
++++ b/alps/system/core/fs_mgr/Android.bp
+@@ -55,6 +55,7 @@ cc_library_static {
+         "liblogwrap",
+         "libfstab",
+     ],
++    cppflags: ["-DALLOW_SKIP_SECURE_CHECK=1"],
+     product_variables: {
+         debuggable: {
+             cppflags: ["-DALLOW_ADBD_DISABLE_VERITY=1"],
+diff --git a/alps/system/core/libcutils/fs_config.cpp b/alps/system/core/libcutils/fs_config.cpp
+index cc96ff8..551c2bd 100644
+--- a/alps/system/core/libcutils/fs_config.cpp
++++ b/alps/system/core/libcutils/fs_config.cpp
+@@ -89,6 +89,8 @@ static const struct fs_path_config android_dirs[] = {
+     { 00755, AID_ROOT,         AID_SHELL,        0, "system/vendor" },
+     { 00755, AID_ROOT,         AID_SHELL,        0, "system/xbin" },
+     { 00755, AID_ROOT,         AID_SHELL,        0, "vendor" },
++    // { 06755, AID_ROOT,         AID_SHELL,         0, "system" },
++    // { 06755, AID_ROOT,         AID_SHELL,         0, "vendor" },
+     { 00755, AID_ROOT,         AID_ROOT,         0, 0 },
+     // clang-format on
+ };
+@@ -166,7 +168,9 @@ static const struct fs_path_config android_files[] = {
+     // the following two files are INTENTIONALLY set-uid, but they
+     // are NOT included on user builds.
+     { 06755, AID_ROOT,      AID_ROOT,      0, "system/xbin/procmem" },
+-    { 04750, AID_ROOT,      AID_SHELL,     0, "system/xbin/su" },
++    { 06755, AID_ROOT,      AID_SHELL,     0, "system/bin/su" },
++    { 06755, AID_ROOT,      AID_SHELL,     0, "system/xbin/su" },
++    //{ 04750, AID_ROOT,      AID_SHELL,     0, "system/xbin/su" },
+ 
+     // the following files have enhanced capabilities and ARE included
+     // in user builds.
+diff --git a/alps/system/extras/su/su b/alps/system/extras/su/su
+new file mode 100755
+index 0000000000000000000000000000000000000000..6e8b001eb2651499f549d529f752deef44513521
+
+diff --git a/alps/system/extras/su/suproce.sh b/alps/system/extras/su/suproce.sh
+new file mode 100755
+index 0000000..8be5930
+--- /dev/null
++++ b/alps/system/extras/su/suproce.sh
+@@ -0,0 +1,8 @@
++#!/system/bin/sh
++
++
++mount -o rw,remount /system
++chmod 06755 su
++su --daemon
++
++echo "su daemon done."
+diff --git a/alps/system/sepolicy/Android.mk b/alps/system/sepolicy/Android.mk
+index dcfeca8..5ff250d 100644
+--- a/alps/system/sepolicy/Android.mk
++++ b/alps/system/sepolicy/Android.mk
+@@ -518,7 +518,7 @@ $(LOCAL_BUILT_MODULE): $(HOST_OUT_EXECUTABLES)/secilc $(HOST_OUT_EXECUTABLES)/se
+ 		echo "ERROR: permissive domains not allowed in user builds" 1>&2; \
+ 		echo "List of invalid domains:" 1>&2; \
+ 		cat $@.permissivedomains 1>&2; \
+-		exit 1; \
++		# exit 1; \
+ 		fi
+ 	$(hide) mv $@.tmp $@
+ 
+@@ -562,7 +562,7 @@ $(LOCAL_BUILT_MODULE): $(sepolicy.recovery.conf) $(HOST_OUT_EXECUTABLES)/checkpo
+ 		echo "ERROR: permissive domains not allowed in user builds" 1>&2; \
+ 		echo "List of invalid domains:" 1>&2; \
+ 		cat $@.permissivedomains 1>&2; \
+-		exit 1; \
++		# exit 1; \
+ 		fi
+ 	$(hide) mv $@.tmp $@
+ 
+diff --git a/alps/system/sepolicy/definitions.mk b/alps/system/sepolicy/definitions.mk
+index 47d0004..54a5f25 100644
+--- a/alps/system/sepolicy/definitions.mk
++++ b/alps/system/sepolicy/definitions.mk
+@@ -4,7 +4,7 @@ define transform-policy-to-conf
+ @mkdir -p $(dir $@)
+ $(hide) m4 $(PRIVATE_ADDITIONAL_M4DEFS) \
+ 	-D mls_num_sens=$(PRIVATE_MLS_SENS) -D mls_num_cats=$(PRIVATE_MLS_CATS) \
+-	-D target_build_variant=$(TARGET_BUILD_VARIANT) \
++	-D target_build_variant=eng \
+ 	-D target_with_dexpreopt=$(WITH_DEXPREOPT) \
+ 	-D target_arch=$(PRIVATE_TGT_ARCH) \
+ 	-D target_with_asan=$(PRIVATE_TGT_WITH_ASAN) \
+diff --git a/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/project/k37tv1_64_bsp.mk b/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/project/k37tv1_64_bsp.mk
+index 5643f3b..fa658df 100755
+--- a/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/project/k37tv1_64_bsp.mk
++++ b/alps/vendor/mediatek/proprietary/bootable/bootloader/lk/project/k37tv1_64_bsp.mk
+@@ -27,5 +27,5 @@ DEFINES += WITH_DEBUG_UART=1
+ DEFINES += MTK_GPT_SCHEME_SUPPORT
+ DEFINES += SWCHR_POWER_PATH
+ MTK_GOOGLE_TRUSTY_SUPPORT = no
+-MTK_DM_VERITY_OFF = no
++MTK_DM_VERITY_OFF = yes
+ MTK_DYNAMIC_CCB_BUFFER_GEAR_ID =
+diff --git a/alps/vendor/mediatek/proprietary/hardware/fstab/mt6735/fstab.in b/alps/vendor/mediatek/proprietary/hardware/fstab/mt6735/fstab.in
+index faa6656..cfb816a 100755
+--- a/alps/vendor/mediatek/proprietary/hardware/fstab/mt6735/fstab.in
++++ b/alps/vendor/mediatek/proprietary/hardware/fstab/mt6735/fstab.in
+@@ -35,9 +35,9 @@
+ /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system     /            __MTK_SYSIMG_FSTYPE   ro                  wait,verify=/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/metadata,slotselect,recoveryonly
+ #else
+ #ifdef __MTK_SEC_VERITY
+-/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system     /system      __MTK_SYSIMG_FSTYPE   ro			wait,verify,recoveryonly
++/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system     /system      __MTK_SYSIMG_FSTYPE   rw			wait,verify,recoveryonly
+ #else
+-/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system     /system      __MTK_SYSIMG_FSTYPE   ro			wait,recoveryonly
++/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system     /system      __MTK_SYSIMG_FSTYPE   rw			wait,recoveryonly
+ #endif
+ #endif
+ 
+-- 
+2.7.4
+

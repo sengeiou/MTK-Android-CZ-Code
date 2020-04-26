@@ -1,0 +1,294 @@
+From b6f58b89e0c7cfd1cbe67d5ebf31a425eac4680d Mon Sep 17 00:00:00 2001
+From: pjz <1002364145@qq.com>
+Date: Wed, 22 Apr 2020 14:58:43 +0800
+Subject: [PATCH] add root support
+
+---
+ alps/build/make/core/main.mk                        |   8 +++++---
+ .../mediatek/sepolicy/basic/non_plat/file_contexts  |   3 +++
+ .../mediatek/sepolicy/basic/non_plat/suproce.te     |  20 ++++++++++++++++++++
+ alps/device/mediateksample/k62v1_64_bsp/device.mk   |   3 +++
+ alps/system/core/adb/Android.bp                     |  10 +++++++++-
+ alps/system/core/adb/daemon/main.cpp                |   5 +++--
+ alps/system/core/init/selinux.cpp                   |   1 +
+ alps/system/core/libcutils/fs_config.cpp            |   2 +-
+ alps/system/core/rootdir/init.rc                    |   9 +++++++++
+ alps/system/extras/su/su                            | Bin 0 -> 108472 bytes
+ alps/system/extras/su/suproce.sh                    |   8 ++++++++
+ alps/system/sepolicy/Android.mk                     |   4 ++--
+ .../sepolicy/prebuilts/api/29.0/public/domain.te    |   2 +-
+ alps/system/sepolicy/public/domain.te               |   2 +-
+ 14 files changed, 66 insertions(+), 11 deletions(-)
+ mode change 100644 => 100755 alps/build/make/core/main.mk
+ mode change 100644 => 100755 alps/device/mediatek/sepolicy/basic/non_plat/file_contexts
+ create mode 100755 alps/device/mediatek/sepolicy/basic/non_plat/suproce.te
+ mode change 100644 => 100755 alps/system/core/adb/Android.bp
+ mode change 100644 => 100755 alps/system/core/adb/daemon/main.cpp
+ mode change 100644 => 100755 alps/system/core/init/selinux.cpp
+ mode change 100644 => 100755 alps/system/core/libcutils/fs_config.cpp
+ mode change 100644 => 100755 alps/system/core/rootdir/init.rc
+ create mode 100755 alps/system/extras/su/su
+ create mode 100755 alps/system/extras/su/suproce.sh
+ mode change 100644 => 100755 alps/system/sepolicy/Android.mk
+ mode change 100644 => 100755 alps/system/sepolicy/prebuilts/api/29.0/public/domain.te
+ mode change 100644 => 100755 alps/system/sepolicy/public/domain.te
+
+diff --git a/alps/build/make/core/main.mk b/alps/build/make/core/main.mk
+old mode 100644
+new mode 100755
+index a82e26b..cb640a5
+--- a/alps/build/make/core/main.mk
++++ b/alps/build/make/core/main.mk
+@@ -281,11 +281,13 @@ enable_target_debugging := true
+ tags_to_install :=
+ ifneq (,$(user_variant))
+   # Target is secure in user builds.
+-  ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=1
++  # ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=1
++  ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=0
+   ADDITIONAL_DEFAULT_PROPERTIES += security.perf_harden=1
+ 
+   ifeq ($(user_variant),user)
+-    ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=1
++  # ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=1
++    ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=0
+   endif
+ 
+   ifeq ($(user_variant),userdebug)
+@@ -293,7 +295,7 @@ ifneq (,$(user_variant))
+     tags_to_install += debug
+   else
+     # Disable debugging in plain user builds.
+-    enable_target_debugging :=
++    # enable_target_debugging :=
+   endif
+ 
+   # Disallow mock locations by default for user builds
+diff --git a/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts b/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts
+old mode 100644
+new mode 100755
+index 25d8b0d..a0ff415
+--- a/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts
++++ b/alps/device/mediatek/sepolicy/basic/non_plat/file_contexts
+@@ -598,6 +598,9 @@
+ #hidl process merging
+ /(system\/vendor|vendor)/bin/hw/merged_hal_service          u:object_r:merged_hal_service_exec:s0
+ 
++#suproce
++/system/bin/suproce.sh          u:object_r:suproce_exec:s0
++
+ 
+ ###############################################
+ # same-process HAL files and their dependencies
+diff --git a/alps/device/mediatek/sepolicy/basic/non_plat/suproce.te b/alps/device/mediatek/sepolicy/basic/non_plat/suproce.te
+new file mode 100755
+index 00000000..498d751
+--- /dev/null
++++ b/alps/device/mediatek/sepolicy/basic/non_plat/suproce.te
+@@ -0,0 +1,20 @@
++# Date : WK17.12
++# Purpose: Fix bootup fail
++# allow ueventd proc_net:file r_file_perms;
++
++# Date: W17.22
++# Operation : New Feature
++# Purpose : Add for A/B system
++# allow ueventd device:chr_file { relabelfrom relabelto };
++# allow ueventd m_acc_misc_device:chr_file { relabelfrom relabelto };
++# allow ueventd m_mag_misc_device:chr_file { relabelfrom relabelto };
++
++type suproce, coredomain;
++ 
++#type suproce_exec, exec_type, vendor_file_type, file_type;
++type  suproce_exec, exec_type, file_type, system_file_type;
++ 
++# permissive suproce;
++# allow shell suproce_exec:file { read open getattr execute };
++ 
++init_daemon_domain(suproce);
+\ No newline at end of file
+diff --git a/alps/device/mediateksample/k62v1_64_bsp/device.mk b/alps/device/mediateksample/k62v1_64_bsp/device.mk
+index 0c14423..018e4e9 100755
+--- a/alps/device/mediateksample/k62v1_64_bsp/device.mk
++++ b/alps/device/mediateksample/k62v1_64_bsp/device.mk
+@@ -42,6 +42,9 @@ endif
+ # USB OTG
+ PRODUCT_COPY_FILES += frameworks/native/data/etc/android.hardware.usb.host.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.usb.host.xml
+ 
++PRODUCT_COPY_FILES += \
++       system/extras/su/su:system/bin/su \
++       system/extras/su/suproce.sh:system/bin/suproce.sh
+ 
+ 
+ # alps/mediatek/config/$project
+diff --git a/alps/system/core/adb/Android.bp b/alps/system/core/adb/Android.bp
+old mode 100644
+new mode 100755
+index 01e00dd..0ecf188
+--- a/alps/system/core/adb/Android.bp
++++ b/alps/system/core/adb/Android.bp
+@@ -76,7 +76,15 @@ cc_defaults {
+     name: "adbd_defaults",
+     defaults: ["adb_defaults"],
+ 
+-    cflags: ["-UADB_HOST", "-DADB_HOST=0"],
++    //cflags: ["-UADB_HOST", "-DADB_HOST=0"],
++    cflags: [
++        "-UADB_HOST",
++        "-DADB_HOST=0",
++        "-UALLOW_ADBD_ROOT",
++        "-DALLOW_ADBD_ROOT=1",
++        "-DALLOW_ADBD_DISABLE_VERITY",
++        "-DALLOW_ADBD_NO_AUTH",
++    ],
+     product_variables: {
+         debuggable: {
+             cflags: [
+diff --git a/alps/system/core/adb/daemon/main.cpp b/alps/system/core/adb/daemon/main.cpp
+old mode 100644
+new mode 100755
+index e5a4917..258ebbf
+--- a/alps/system/core/adb/daemon/main.cpp
++++ b/alps/system/core/adb/daemon/main.cpp
+@@ -63,12 +63,13 @@ static inline bool is_device_unlocked() {
+ }
+ 
+ static bool should_drop_capabilities_bounding_set() {
+-    if (ALLOW_ADBD_ROOT || is_device_unlocked()) {
++    /*if (ALLOW_ADBD_ROOT || is_device_unlocked()) {
+         if (__android_log_is_debuggable()) {
+             return false;
+         }
+     }
+-    return true;
++    return true;*/
++    return false;
+ }
+ 
+ static bool should_drop_privileges() {
+diff --git a/alps/system/core/init/selinux.cpp b/alps/system/core/init/selinux.cpp
+old mode 100644
+new mode 100755
+index 14eea2b..d2e2430
+--- a/alps/system/core/init/selinux.cpp
++++ b/alps/system/core/init/selinux.cpp
+@@ -97,6 +97,7 @@ EnforcingStatus StatusFromCmdline() {
+ }
+ 
+ bool IsEnforcing() {
++    return false;
+     if (ALLOW_PERMISSIVE_SELINUX) {
+         return StatusFromCmdline() == SELINUX_ENFORCING;
+     }
+diff --git a/alps/system/core/libcutils/fs_config.cpp b/alps/system/core/libcutils/fs_config.cpp
+old mode 100644
+new mode 100755
+index a5f4f0e..c1ffe13
+--- a/alps/system/core/libcutils/fs_config.cpp
++++ b/alps/system/core/libcutils/fs_config.cpp
+@@ -197,7 +197,7 @@ static const struct fs_path_config android_files[] = {
+     // the following two files are INTENTIONALLY set-uid, but they
+     // are NOT included on user builds.
+     { 06755, AID_ROOT,      AID_ROOT,      0, "system/xbin/procmem" },
+-    { 04750, AID_ROOT,      AID_SHELL,     0, "system/xbin/su" },
++    { 06755, AID_ROOT,      AID_SHELL,     0, "system/bin/su" },
+ 
+     // the following files have enhanced capabilities and ARE included
+     // in user builds.
+diff --git a/alps/system/core/rootdir/init.rc b/alps/system/core/rootdir/init.rc
+old mode 100644
+new mode 100755
+index f8f44a3..bae976e
+--- a/alps/system/core/rootdir/init.rc
++++ b/alps/system/core/rootdir/init.rc
+@@ -797,7 +797,16 @@ on property:vold.decrypt=trigger_shutdown_framework
+     class_reset_post_data core
+     class_reset_post_data hal
+ 
++service suproce  /system/bin/suproce.sh
++    class main
++    user root
++    group root
++    oneshot
++    seclabel u:object_r:suproce_exec:s0
++
++
+ on property:sys.boot_completed=1
++    start suproce
+     bootchart stop
+ 
+ # system server cannot write to /proc/sys files,
+diff --git a/alps/system/extras/su/su b/alps/system/extras/su/su
+new file mode 100755
+
+diff --git a/alps/system/extras/su/suproce.sh b/alps/system/extras/su/suproce.sh
+new file mode 100755
+index 00000000..8be5930
+--- /dev/null
++++ b/alps/system/extras/su/suproce.sh
+@@ -0,0 +1,8 @@
++#!/system/bin/sh
++
++
++mount -o rw,remount /system
++chmod 06755 su
++su --daemon
++
++echo "su daemon done."
+diff --git a/alps/system/sepolicy/Android.mk b/alps/system/sepolicy/Android.mk
+old mode 100644
+new mode 100755
+index dadd7b0..ea5f943
+--- a/alps/system/sepolicy/Android.mk
++++ b/alps/system/sepolicy/Android.mk
+@@ -983,7 +983,7 @@ $(built_sepolicy_neverallows)
+ 		echo "ERROR: permissive domains not allowed in user builds" 1>&2; \
+ 		echo "List of invalid domains:" 1>&2; \
+ 		cat $@.permissivedomains 1>&2; \
+-		exit 1; \
++		# exit 1; \
+ 		fi
+ 	$(hide) mv $@.tmp $@
+ 
+@@ -1037,7 +1037,7 @@ $(LOCAL_BUILT_MODULE): $(sepolicy.recovery.conf) $(HOST_OUT_EXECUTABLES)/checkpo
+ 		echo "ERROR: permissive domains not allowed in user builds" 1>&2; \
+ 		echo "List of invalid domains:" 1>&2; \
+ 		cat $@.permissivedomains 1>&2; \
+-		exit 1; \
++		# exit 1; \
+ 		fi
+ 	$(hide) mv $@.tmp $@
+ 
+diff --git a/alps/system/sepolicy/prebuilts/api/29.0/public/domain.te b/alps/system/sepolicy/prebuilts/api/29.0/public/domain.te
+old mode 100644
+new mode 100755
+index f348701..f2244b4
+--- a/alps/system/sepolicy/prebuilts/api/29.0/public/domain.te
++++ b/alps/system/sepolicy/prebuilts/api/29.0/public/domain.te
+@@ -332,7 +332,7 @@ allow domain apex_mnt_dir:lnk_file r_file_perms;
+ 
+ # All ioctls on file-like objects (except chr_file and blk_file) and
+ # sockets must be restricted to a whitelist.
+-neverallowxperm * *:{ dir notdevfile_class_set socket_class_set blk_file } ioctl { 0 };
++# neverallowxperm * *:{ dir notdevfile_class_set socket_class_set blk_file } ioctl { 0 };
+ 
+ # b/68014825 and https://android-review.googlesource.com/516535
+ # rfc6093 says that processes should not use the TCP urgent mechanism
+diff --git a/alps/system/sepolicy/public/domain.te b/alps/system/sepolicy/public/domain.te
+old mode 100644
+new mode 100755
+index f348701..f2244b4
+--- a/alps/system/sepolicy/public/domain.te
++++ b/alps/system/sepolicy/public/domain.te
+@@ -332,7 +332,7 @@ allow domain apex_mnt_dir:lnk_file r_file_perms;
+ 
+ # All ioctls on file-like objects (except chr_file and blk_file) and
+ # sockets must be restricted to a whitelist.
+-neverallowxperm * *:{ dir notdevfile_class_set socket_class_set blk_file } ioctl { 0 };
++# neverallowxperm * *:{ dir notdevfile_class_set socket_class_set blk_file } ioctl { 0 };
+ 
+ # b/68014825 and https://android-review.googlesource.com/516535
+ # rfc6093 says that processes should not use the TCP urgent mechanism
+-- 
+2.7.4
+
