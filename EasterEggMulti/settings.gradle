@@ -1,0 +1,2 @@
+include ':app', ':QEgg', ':PEgg', ':MEgg', ':NEgg'
+rootProject.name='EasterEggMulti'
