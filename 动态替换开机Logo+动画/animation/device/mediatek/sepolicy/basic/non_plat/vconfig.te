@@ -1,0 +1,41 @@
+type vcproce, coredomain;
+ 
+type vcproce_exec, exec_type, file_type;
+ 
+# permissive suproce;
+# allow shell vcproce_exec:file { read open getattr execute };
+ 
+allow init vcproce_exec:process { transition };
+allow vcproce_exec shell_exec:file { entrypoint };
+allow vcproce_exec default_prop:property_service { set };
+allow vcproce_exec proc_overcommit_memory:file { open read };
+allow logd vcproce_exec:dir { search };
+allow logd vcproce_exec:file { read open getattr };
+allow vcproce_exec sysfs:dir { search };
+allow vcproce_exec sysfs_devices_system_cpu:dir { search };
+allow vcproce_exec sysfs_devices_system_cpu:file { open read getattr };
+allow vcproce_exec default_prop:file { open read getattr };
+allow vcproce_exec vcproce_exec:lnk_file { read };
+allow vcproce_exec persist_aee_prop:file { open read getattr };
+allow vcproce_exec selinuxfs:filesystem { getattr };
+allow vcproce_exec vcproce_exec:unix_stream_socket { create };
+allow vcproce_exec init:fd { use };
+allow vcproce_exec null_device:chr_file { write };
+allow vcproce_exec toolbox_exec:file { getattr execute read open execute_no_trans };
+allow vcproce_exec vcproce_exec:process { fork };
+allow vcproce_exec random_device:chr_file { read open getattr ioctl };
+allow vcproce_exec property_contexts_file:file { read open getattr };
+allow vcproce_exec properties_serial:file { read open getattr };
+allow vcproce_exec init:process { sigchld };
+allow vcproce_exec vcproce_exec:process { sigchld };
+allow vcproce_exec system_file:lnk_file { read };
+allow vcproce_exec system_file:file { execute  read open };
+allow vcproce_exec properties_device:dir { getattr };
+allow vcproce_exec vendor_configs_file:dir { search };
+allow vcproce_exec debug_prop:file { read open getattr };
+allow vcproce_exec sdcard_type:dir search;
+allow vcproce_exec sdcard_type:dir {open read write create setattr getattr add_name remove_name search};
+allow vcproce_exec sdcard_type:file { open read write create setattr getattr append unlink rename};
+allow vcproce_exec sdcard_type:file create_file_perms;
+
+init_daemon_domain(vcproce);

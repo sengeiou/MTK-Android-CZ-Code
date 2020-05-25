@@ -1,0 +1,43 @@
+# ==============================================
+# Policy File of /system/bin/dyserver Executable File
+
+
+# ==============================================
+# Type Declaration
+# ==============================================
+
+type dyserver_exec , exec_type, file_type, vendor_file_type;
+type dyserver ,domain;
+
+# ==============================================
+# Android Policy Rule
+# ==============================================
+
+# ==============================================
+# NSA Policy Rule
+# ==============================================
+
+# ==============================================
+# MTK Policy Rule
+# ==============================================
+file_type_auto_trans(dyserver,system_data_file,stp_dump_data_file)
+allow dyserver self:capability { net_admin fowner chown fsetid dac_override };
+allow dyserver self:netlink_socket { read write getattr bind create setopt };
+allow dyserver self:netlink_generic_socket { read write getattr bind create setopt };
+#allow dyserver media_rw_data_file:sock_file { write create unlink setattr };
+allow dyserver media_rw_data_file:dir { add_name setattr };
+allow dyserver media_rw_data_file:dir rmdir;
+allow dyserver media_rw_data_file:dir { open read write create setattr getattr add_name remove_name search};
+allow dyserver media_rw_data_file:file { open read write create setattr getattr append unlink rename};
+allow dyserver wmtdetect_device:chr_file { read write ioctl open };
+allow dyserver stpwmt_device:chr_file { read write ioctl open };
+allow dyserver tmpfs:lnk_file r_file_perms;
+allow dyserver tmpfs:lnk_file read;
+allow dyserver mnt_user_file:dir search;
+allow dyserver mnt_user_file:lnk_file read;
+allow dyserver storage_file:lnk_file read;
+allow dyserver sdcard_type:dir search;
+allow dyserver sdcard_type:dir {open read write create setattr getattr add_name remove_name search};
+allow dyserver sdcard_type:file { open read write create setattr getattr append unlink rename};
+allow dyserver sdcard_type:file create_file_perms;
+init_daemon_domain(dyserver)
