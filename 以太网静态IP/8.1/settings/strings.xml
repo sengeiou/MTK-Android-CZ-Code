@@ -1,0 +1,32 @@
+
+
+<string name="ethernet_ip_settings_invalid_ip">"Please fill in the correct format."</string>
+<string name="eth_ip_settings_please_complete_settings">"Network information is not complete, please fill in the complete"</string>
+<string name="save_satic_ethernet">"Save"</string>
+<string name="enthernet_static">"Use static settings"</string>
+<string name="enthernet_ip_address">"IP address"</string>
+<string name="enthernet_gateway">"gateway"</string>
+<string name="enthernet_netmask">"Subnet mask"</string>
+<string name="enthernet_dns1">"domain1"</string>
+<string name="enthernet_dns2">"domain2"</string>
+<string name="ethernet_quick_toggle_title">"Ethernet"</string>
+<string name="open_ethernet">"Open Ethernet"</string>
+<string name="ethernet_static_ip_settings_title">"Setting Ethernet"</string>
+<string name="ethernet_settings">"Ethernet"</string>
+<string name="ethernet_settings_title">"Ethernet"</string>
+
+
+<string name="ethernet_ip_settings_invalid_ip">"请填写正确的格式"</string>
+<string name="save_satic_ethernet">"保存"</string>
+<string name="eth_ip_settings_please_complete_settings">"网络信息不完整，请填写完整"</string>
+<string name="enthernet_static">"使用静态设置"</string>
+<string name="enthernet_ip_address">"IP地址"</string>
+<string name="enthernet_gateway">"网关"</string>
+<string name="enthernet_netmask">"子网掩码"</string>
+<string name="enthernet_dns1">"域名1"</string>
+<string name="enthernet_dns2">"域名2"</string>
+<string name="ethernet_quick_toggle_title">"以太网"</string>
+<string name="open_ethernet">"打开以太网"</string>
+<string name="ethernet_static_ip_settings_title">"配置以太网"</string>
+<string name="ethernet_settings">"以太网"</string>
+<string name="ethernet_settings_title">"以太网"</string> 
