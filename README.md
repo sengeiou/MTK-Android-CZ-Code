@@ -63,6 +63,8 @@
 
 **系列文章**
 
+[Android10.0（Q） MTK平台增加以太网静态IP功能]()
+
 [Android P 9.0 MTK平台 增加以太网静态IP功能](https://blog.csdn.net/u012932409/article/details/102669395)
 
 [Android8.1 MTK平台 增加以太网静态IP功能](https://blog.csdn.net/u012932409/article/details/90679666)
@@ -78,3 +80,13 @@
 [MTK 6737 android6.0 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/103398641)
 
 [android10.0(Q) root MTK 6765 user版本打开root权限(adb root权限和 apk root权限)](https://blog.csdn.net/u012932409/article/details/105689587)
+
+
+
+## 9、动态替换开机logo和开机动画
+
+**系列文章**
+
+[地表最强之Android开机动画动态替换](https://blog.csdn.net/u012932409/article/details/106146322)
+
+[地表最强之Android开机Logo动态替换(附100余款车商原厂高清logo)](https://blog.csdn.net/u012932409/article/details/106331879)
